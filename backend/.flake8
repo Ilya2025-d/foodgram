@@ -1,0 +1,13 @@
+[flake8]
+ignore =
+    I001,
+    I003,
+    I004,
+    I005,
+    E501
+
+exclude =
+    tests/,
+    */migrations/,
+    venv/,
+    env/

@@ -12,9 +12,9 @@ jobs:
       postgres:
         image: postgres:15-alpine
         env:
-          POSTGRES_USER: django_user
+          POSTGRES_USER: foodgram_user
           POSTGRES_PASSWORD: mysecretpassword
-          POSTGRES_DB: django
+          POSTGRES_DB: foodgram
         ports:
           - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
@@ -23,7 +23,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: 3.11
+        python-version: 3.12
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip setuptools
@@ -32,9 +32,9 @@ jobs:
     - name: Test with flake8 and django tests
       env:
         DB_ENGINE: 'postgresql'
-        POSTGRES_USER: django_user
+        POSTGRES_USER: foodgram_user
         POSTGRES_PASSWORD: mysecretpassword
-        POSTGRES_DB: django
+        POSTGRES_DB: foodgram
         DB_HOST: 127.0.0.1
         DB_PORT: 5432
       run: |
@@ -69,11 +69,15 @@ jobs:
     - name: Set up nodeJS
       uses: actions/setup-node@v3
       with:
-        node-version: 18
+        node-version: 21.7.1
     - name: Install dependencies
       run: |
         cd frontend/
-        npm install --legacy-peer-deps
+        npm ci
+    - name: Test frontend
+      run: |
+        cd frontend/
+        npm run test
 
   build_frontend_and_push_to_docker_hub:
     name: Push frontend Docker image to DockerHub

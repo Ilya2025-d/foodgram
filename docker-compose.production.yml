@@ -3,6 +3,7 @@ version: '3'
 volumes:
   pg_data:
   static:
+  media:
 
 services:
   db:
@@ -17,7 +18,7 @@ services:
       - .env
     volumes:
       - static:/app/static/
-      - static:/app/media/media
+      - media:/app/media/
     depends_on:
       - db
   frontend:
@@ -31,6 +32,7 @@ services:
     image: kisame2011/foodgram_gateway:latest
     volumes:
       - static:/var/html/
+      - media:/var/html/media/
     depends_on:
       - backend
       - frontend

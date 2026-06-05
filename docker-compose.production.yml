@@ -25,7 +25,7 @@ services:
     image: kisame2011/foodgram_frontend:latest
     env_file:
       - .env
-    command: cp -r /app/build/. /frontend_static/frontend/
+    command: sh -c "mkdir -p /frontend_static/frontend && cp -r /app/build/. /frontend_static/frontend/ && tail -f /dev/null"
     volumes:
       - static:/frontend_static/
   gateway:

@@ -3,7 +3,6 @@ version: '3'
 volumes:
   pg_data:
   static:
-  media:
 
 services:
   db:
@@ -17,22 +16,21 @@ services:
     env_file:
       - .env
     volumes:
-      - static:/app/static/
-      - media:/app/media/
+      - static:/app/static/backend_static/
+      - static:/app/media/media
     depends_on:
       - db
   frontend:
     image: kisame2011/foodgram_frontend:latest
     env_file:
       - .env
-    command: cp -r /app/build/. /frontend_static/
+    command: cp -r /app/build/. /frontend_static/frontend/
     volumes:
-      - static:/static
+      - static:/frontend_static/
   gateway:
     image: kisame2011/foodgram_gateway:latest
     volumes:
-      - static:/staticfiles
-      - media:/media
+      - static:/var/html/
     depends_on:
       - backend
       - frontend

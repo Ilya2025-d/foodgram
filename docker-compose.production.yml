@@ -2,8 +2,7 @@ version: '3'
 
 volumes:
   pg_data_foodgram:
-  django_static:      # Отдельный волюм для админки Django [INDEX]
-  frontend_static:    # Отдельный волюм для фронтенда React [INDEX]
+  static_volume:
   media_volume:
 
 services:
@@ -26,7 +25,8 @@ services:
     env_file:
       - .env
     volumes:
-      - django_static:/app/static/     # Админка собирается сюда [INDEX]
+      # Django соберет статику прямо сюда
+      - static_volume:/app/static/
       - media_volume:/app/media/
     depends_on:
       db:
@@ -38,7 +38,8 @@ services:
     env_file:
       - .env
     volumes:
-      - frontend_static:/frontend_static  # Фронт копируется сюда [INDEX]
+      - static_volume:/frontend_static
+    # Копируем фронтенд в чистый корень /frontend_static/ без подпапок
     command: sh -c "mkdir -p /frontend_static && cp -r /app/build/. /frontend_static/ && tail -f /dev/null"
 
   gateway:
@@ -47,10 +48,9 @@ services:
     env_file:
       - .env
     volumes:
-      - django_static:/var/html/django_static/     # Nginx видит админку отдельно [INDEX]
-      - frontend_static:/var/html/frontend_static/ # Nginx видит фронтенд отдельно [INDEX]
+      # Мапим папки Nginx напрямую к корням разделов
+      - static_volume:/var/html/
       - media_volume:/var/html/media/
-      - /etc/letsencrypt:/etc/letsencrypt:ro
     ports:
       - "127.0.0.1:9001:80"
     depends_on:

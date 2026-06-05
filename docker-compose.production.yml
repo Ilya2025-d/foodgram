@@ -1,40 +1,58 @@
 version: '3'
 
 volumes:
-  pg_data:
-  static:
-  media:
+  pg_data_foodgram:
+  django_static:      # Отдельный волюм для админки Django [INDEX]
+  frontend_static:    # Отдельный волюм для фронтенда React [INDEX]
+  media_volume:
 
 services:
   db:
     image: postgres:15-alpine
-    volumes:
-      - pg_data:/var/lib/postgresql/data/
+    restart: always
     env_file:
       - .env
+    volumes:
+      - pg_data_foodgram:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   backend:
     image: kisame2011/foodgram_backend:latest
+    restart: always
     env_file:
       - .env
     volumes:
-      - static:/app/static/
-      - media:/app/media/
+      - django_static:/app/static/     # Админка собирается сюда [INDEX]
+      - media_volume:/app/media/
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+
   frontend:
     image: kisame2011/foodgram_frontend:latest
+    restart: always
     env_file:
       - .env
-    command: sh -c "mkdir -p /frontend_static/frontend && cp -r /app/build/. /frontend_static/frontend/ && tail -f /dev/null"
     volumes:
-      - static:/frontend_static/
+      - frontend_static:/frontend_static  # Фронт копируется сюда [INDEX]
+    command: sh -c "mkdir -p /frontend_static && cp -r /app/build/. /frontend_static/ && tail -f /dev/null"
+
   gateway:
     image: kisame2011/foodgram_gateway:latest
+    restart: always
+    env_file:
+      - .env
     volumes:
-      - static:/var/html/
-      - media:/var/html/media/
+      - django_static:/var/html/django_static/     # Nginx видит админку отдельно [INDEX]
+      - frontend_static:/var/html/frontend_static/ # Nginx видит фронтенд отдельно [INDEX]
+      - media_volume:/var/html/media/
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    ports:
+      - "127.0.0.1:9001:80"
     depends_on:
       - backend
       - frontend
-    ports:
-      - "127.0.0.1:9001:80"

@@ -26,7 +26,7 @@ services:
       - .env
     volumes:
       # Django соберет статику прямо сюда
-      - static_volume:/app/static/
+      - static_volume:/app/backend_static/
       - media_volume:/app/media/
     depends_on:
       db:
@@ -39,8 +39,7 @@ services:
       - .env
     volumes:
       - static_volume:/frontend_static
-    # Копируем фронтенд в чистый корень /frontend_static/ без подпапок
-    command: sh -c "mkdir -p /frontend_static && cp -r /app/build/. /frontend_static/ && tail -f /dev/null"
+    command:  sh -c "mkdir -p /frontend_static && cp -r /app/build/. /frontend_static/ && tail -f /dev/null"
 
   gateway:
     image: kisame2011/foodgram_gateway:latest
@@ -48,9 +47,9 @@ services:
     env_file:
       - .env
     volumes:
-      # Мапим папки Nginx напрямую к корням разделов
-      - static_volume:/var/html/
+      - static_volume:/staticfiles/
       - media_volume:/var/html/media/
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     ports:
       - "127.0.0.1:9001:80"
     depends_on:

@@ -48,7 +48,7 @@ services:
       - .env
     volumes:
       - static_volume:/staticfiles/
-      - media_volume:/var/html/media/
+      - media_volume:/media/
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - ./data/:/app/data/
     ports:

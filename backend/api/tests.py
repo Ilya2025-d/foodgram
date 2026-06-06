@@ -51,5 +51,9 @@ class FoodgramAPITestCase(TestCase):
             'text': 'Аноним не должен это создать',
             'cooking_time': 10
         }
-        response = self.guest_client.post('/api/recipes/', data=data, content_type='application/json')
+        response = self.guest_client.post(
+            '/api/recipes/',
+            data=data,
+            content_type='application/json'
+        )
         self.assertEqual(response.status_code, HTTPStatus.UNAUTHORIZED)

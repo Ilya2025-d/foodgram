@@ -129,7 +129,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             cd foodgram  # Исправлен переход в правильную папку
-            sudo docker compose -f docker-compose.production.yml down -v
+            sudo docker compose -f docker-compose.production.yml down
             sudo docker compose -f docker-compose.production.yml pull
             sudo docker compose -f docker-compose.production.yml up -d
             sleep 10

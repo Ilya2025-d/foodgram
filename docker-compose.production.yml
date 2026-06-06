@@ -25,7 +25,6 @@ services:
     env_file:
       - .env
     volumes:
-      # Django соберет статику прямо сюда
       - static_volume:/app/backend_static/
       - media_volume:/app/media/
     depends_on:

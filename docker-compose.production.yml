@@ -50,6 +50,7 @@ services:
       - static_volume:/staticfiles/
       - media_volume:/var/html/media/
       - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./data/:/app/data/
     ports:
       - "127.0.0.1:9001:80"
     depends_on:

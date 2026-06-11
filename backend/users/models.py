@@ -1,7 +1,9 @@
 from django.contrib.auth.models import AbstractUser
-from django.contrib.auth.validators import UnicodeUsernameValidator
-from django.core.exceptions import ValidationError
 from django.db import models
+
+
+MAIL_LEN = 254
+NAME_LEN = 150
 
 
 class User(AbstractUser):
@@ -9,21 +11,15 @@ class User(AbstractUser):
 
     first_name = models.CharField(
         verbose_name='Имя',
-        max_length=150
+        max_length=NAME_LEN
     )
     last_name = models.CharField(
         verbose_name='Фамилия',
-        max_length=150
-    )
-    username = models.CharField(
-        verbose_name='Уникальный юзернейм',
-        max_length=150,
-        unique=True,
-        validators=[UnicodeUsernameValidator(), ]
+        max_length=NAME_LEN
     )
     email = models.EmailField(
         verbose_name='Адрес электронной почты',
-        max_length=254,
+        max_length=MAIL_LEN,
         unique=True
     )
     avatar = models.ImageField(
@@ -41,7 +37,7 @@ class User(AbstractUser):
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
-        ordering = ('id',)
+        ordering = ('last_name', 'first_name')
 
 
 class Follow(models.Model):
@@ -73,9 +69,3 @@ class Follow(models.Model):
                 name='user_cannot_follow_oneself'
             )
         ]
-
-    def clean(self):
-        if self.user == self.author:
-            raise ValidationError(
-                'Нельзя подписаться на самого себя!'
-            )

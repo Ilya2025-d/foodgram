@@ -220,6 +220,12 @@ class CustomUserViewSet(UserViewSet):
 
     @subscribe.mapping.delete
     def unsubscribe(self, request, id=None):
+        if not request.user.is_authenticated:
+            return Response(
+                {'detail': 'Учетные данные не были предоставлены.'},
+                status=HTTPStatus.UNAUTHORIZED
+            )
+
         author = get_object_or_404(User, id=id)
         deleted_count, _ = Follow.objects.filter(
             user=request.user, author=author

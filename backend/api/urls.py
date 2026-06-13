@@ -3,7 +3,8 @@ from rest_framework.routers import DefaultRouter
 
 from .v1.views import (
     CustomUserViewSet, IngredientViewSet,
-    RecipeViewSet, TagViewSet)
+    RecipeViewSet, TagViewSet
+)
 
 
 router = DefaultRouter(use_regex_path=False)
@@ -15,5 +16,5 @@ router.register('users', CustomUserViewSet, basename='users')
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('auth/', include('djoser.urls.authtoken')),
+    path('auth/', include('djoser.urls.authtoken'))
 ]

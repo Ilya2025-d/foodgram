@@ -2,8 +2,7 @@ from http import HTTPStatus
 
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
-
-from recipes.models import Tag, Recipe
+from recipes.models import Recipe, Tag
 
 User = get_user_model()
 

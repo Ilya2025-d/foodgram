@@ -1,15 +1,14 @@
 from django.contrib import admin
 
-from .models import (Tag, Ingredient, Recipe,
-                     IngredientInRecipe,
-                     Favorite, ShoppingCart)
+from .models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
+                     ShoppingCart, Tag)
 
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
     """АЛминка тегов."""
 
-    list_display = ('id', 'name', 'slug', 'color')
+    list_display = ('id', 'name', 'slug')
 
 
 @admin.register(Ingredient)
@@ -25,6 +24,7 @@ class IngredientInRecipeInline(admin.TabularInline):
 
     model = IngredientInRecipe
     extra = 1
+    min_num = 1
 
 
 @admin.register(Recipe)

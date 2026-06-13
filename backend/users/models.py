@@ -1,7 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-
 MAIL_LEN = 254
 NAME_LEN = 150
 

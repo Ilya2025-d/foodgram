@@ -320,24 +320,15 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
         ).data
 
 
-class SubscriptionSerializer(serializers.ModelSerializer):
+class SubscriptionSerializer(CustomUserSerializer):
     """Сериализатор отображения авторов, на которых подписан пользователь."""
 
-    email = serializers.ReadOnlyField(source='author.email')
-    id = serializers.ReadOnlyField(source='author.id')
-    username = serializers.ReadOnlyField(source='author.username')
-    first_name = serializers.ReadOnlyField(source='author.first_name')
-    last_name = serializers.ReadOnlyField(source='author.last_name')
-    avatar = serializers.SerializerMethodField()
-    is_subscribed = serializers.SerializerMethodField()
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.SerializerMethodField()
 
-    class Meta:
-        model = Follow
-        fields = (
-            'email', 'id', 'username', 'first_name', 'last_name',
-            'is_subscribed', 'recipes', 'recipes_count', 'avatar'
+    class Meta(CustomUserSerializer.Meta):
+        fields = CustomUserSerializer.Meta.fields + (
+            'recipes', 'recipes_count'
         )
 
     def get_is_subscribed(self, obj):
@@ -350,17 +341,15 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             ).exists()
         )
 
-    def get_avatar(self, obj):
-        if obj.author.avatar:
-            return obj.author.avatar.url
-        return None
-
     def get_recipes_count(self, obj):
-        return obj.author.recipes.count()
+        author = getattr(obj, 'author', obj)
+        return author.recipes.count()
 
     def get_recipes(self, obj):
+        short_serializer = globals()['RecipeShortSerializer']
         request = self.context.get('request')
-        queryset = obj.author.recipes.all()
+        author = getattr(obj, 'author', obj)
+        queryset = author.recipes.all()
         if request is not None:
             limit = request.query_params.get('recipes_limit')
             if not limit and hasattr(request, '_request'):
@@ -369,8 +358,10 @@ class SubscriptionSerializer(serializers.ModelSerializer):
                 limit = request.GET.get('recipes_limit')
             if limit and str(limit).isdigit() and int(limit) > 0:
                 queryset = queryset[:int(limit)]
-        short_serializer = globals()['RecipeShortSerializer']
-        return short_serializer(queryset, many=True, context=self.context).data
+        serializer = short_serializer(
+            queryset, many=True, context=self.context
+        )
+        return serializer.data
 
 
 class SubscribeSerializer(serializers.ModelSerializer):

@@ -320,11 +320,15 @@ class SubscriptionSerializer(FoodgramUserSerializer):
         if request is not None:
             limit = (
                 request.query_params.get('recipes_limit')
-                or getattr(request, '_request', request).GET.get('recipes_limit')
+                or getattr(
+                    request, '_request', request
+                ).GET.get('recipes_limit')
             )
             if limit and str(limit).isdigit() and int(limit) > 0:
                 queryset = queryset[:int(limit)]
-        serializer = short_serializer(queryset, many=True, context=self.context)
+        serializer = short_serializer(
+            queryset, many=True, context=self.context
+        )
         return serializer.data
 
 

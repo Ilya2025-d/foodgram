@@ -13,7 +13,7 @@ from recipes.models import (Favorite, Ingredient,
 User = get_user_model()
 
 
-class CustomUserSerializer(serializers.ModelSerializer):
+class FoodgramUserSerializer(serializers.ModelSerializer):
     """Сериалайзер для отображения пользователя."""
 
     is_subscribed = serializers.SerializerMethodField()
@@ -32,26 +32,6 @@ class CustomUserSerializer(serializers.ModelSerializer):
             and request.user.is_authenticated
             and Follow.objects.filter(
                 user=request.user, author=obj
-            ).exists()
-        )
-
-    def get_is_favorited(self, obj):
-        request = self.context.get('request')
-        return bool(
-            request
-            and request.user.is_authenticated
-            and Favorite.objects.filter(
-                user=request.user, recipe=obj
-            ).exists()
-        )
-
-    def get_is_in_shopping_cart(self, obj):
-        request = self.context.get('request')
-        return bool(
-            request
-            and request.user.is_authenticated
-            and ShoppingCart.objects.filter(
-                user=request.user, recipe=obj
             ).exists()
         )
 
@@ -112,7 +92,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
     """Отображение полной информации о рецепте."""
 
     tags = TagSerializer(many=True, read_only=True)
-    author = CustomUserSerializer(read_only=True)
+    author = FoodgramUserSerializer(read_only=True)
     ingredients = IngredientInRecipeSerializer(
         many=True, source='recipe_ingredients', read_only=True
     )
@@ -157,7 +137,10 @@ class RecipeReadSerializer(serializers.ModelSerializer):
 class IngredientWriteSerializer(serializers.ModelSerializer):
     """Сериализатор для игредиентов при записи рецепта.."""
 
-    id = serializers.IntegerField()
+    id = serializers.PrimaryKeyRelatedField(
+        queryset=Ingredient.objects.all(),
+        source='ingredient'
+    )
 
     class Meta:
         model = IngredientInRecipe
@@ -171,7 +154,11 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         queryset=Tag.objects.all(), many=True
     )
     ingredients = IngredientWriteSerializer(many=True)
-    image = Base64ImageField()
+    image = Base64ImageField(
+        required=True,
+        allow_null=False,
+        allow_empty_file=False
+    )
 
     class Meta:
         model = Recipe
@@ -179,13 +166,6 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
             'id', 'ingredients', 'tags', 'image',
             'name', 'text', 'cooking_time'
         )
-
-    def validate_cooking_time(self, value):
-        if value < 1:
-            raise serializers.ValidationError(
-                'Время приготовления должно быть не менее 1 минуты.'
-            )
-        return value
 
     def validate(self, data):
         tags = self.initial_data.get('tags')
@@ -197,41 +177,45 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {'tags': 'Теги не должны повторяться.'}
             )
-        ingredients = self.initial_data.get('ingredients')
+        ingredients = data.get('ingredients')
         if not ingredients:
             raise serializers.ValidationError(
                 {'ingredients': 'Необходим минимум 1 ингредиент.'}
             )
-        ingredient_ids = [item['id'] for item in ingredients]
-        if len(ingredient_ids) != len(set(ingredient_ids)):
+        ingredient_objects = [item['ingredient'] for item in ingredients]
+        if len(ingredient_objects) != len(set(ingredient_objects)):
             raise serializers.ValidationError(
                 {'ingredients': 'Ингредиенты не должны повторяться.'}
             )
-        existing_ingredients = Ingredient.objects.filter(id__in=ingredient_ids)
-        if existing_ingredients.count() != len(set(ingredient_ids)):
+        if 'image' in data and not data['image']:
             raise serializers.ValidationError(
-                {'ingredients': 'Одного или несколько ингредиентов нет в базе'}
+                {'image': 'Поле изображения не может быть пустым.'}
             )
-        image = self.initial_data.get('image')
-        if not image:
+        if self.context.get(
+            'request'
+        ).method == 'POST' and 'image' not in data:
             raise serializers.ValidationError(
-                {'image': 'Поле картинки не может быть пустым.'}
+                {'image': 'Изображение обязательно.'}
             )
         return data
 
+    def valodate_image(self, value):
+        if not value:
+            raise serializers.ValidationError(
+                'Поле картинки не может быть пустым.'
+            )
+        return value
+
     @staticmethod
     def create_ingredients_amount(ingredients, recipe):
-        ingredient_list = []
-        for ingredient in ingredients:
-            current_ingredient = Ingredient.objects.get(id=ingredient['id'])
-            ingredient_list.append(
-                IngredientInRecipe(
-                    recipe=recipe,
-                    ingredient=current_ingredient,
-                    amount=ingredient['amount']
-                )
+        IngredientInRecipe.objects.bulk_create([
+            IngredientInRecipe(
+                recipe=recipe,
+                ingredient=ingredient['ingredient'],
+                amount=ingredient['amount']
             )
-        IngredientInRecipe.objects.bulk_create(ingredient_list)
+            for ingredient in ingredients
+        ])
 
     @transaction.atomic
     def create(self, validated_data):
@@ -303,14 +287,14 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
         ).data
 
 
-class SubscriptionSerializer(CustomUserSerializer):
+class SubscriptionSerializer(FoodgramUserSerializer):
     """Сериализатор отображения авторов, на которых подписан пользователь."""
 
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.SerializerMethodField()
 
-    class Meta(CustomUserSerializer.Meta):
-        fields = CustomUserSerializer.Meta.fields + (
+    class Meta(FoodgramUserSerializer.Meta):
+        fields = FoodgramUserSerializer.Meta.fields + (
             'recipes', 'recipes_count'
         )
 
@@ -334,16 +318,13 @@ class SubscriptionSerializer(CustomUserSerializer):
         author = getattr(obj, 'author', obj)
         queryset = author.recipes.all()
         if request is not None:
-            limit = request.query_params.get('recipes_limit')
-            if not limit and hasattr(request, '_request'):
-                limit = request._request.GET.get('recipes_limit')
-            if not limit and hasattr(request, 'GET'):
-                limit = request.GET.get('recipes_limit')
+            limit = (
+                request.query_params.get('recipes_limit')
+                or getattr(request, '_request', request).GET.get('recipes_limit')
+            )
             if limit and str(limit).isdigit() and int(limit) > 0:
                 queryset = queryset[:int(limit)]
-        serializer = short_serializer(
-            queryset, many=True, context=self.context
-        )
+        serializer = short_serializer(queryset, many=True, context=self.context)
         return serializer.data
 
 

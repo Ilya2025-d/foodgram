@@ -78,13 +78,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
             {'short-link': short_link}, status=HTTPStatus.OK
         )
 
-    @action(detail=True, methods=['post'])
+    @action(
+        detail=True, methods=['post'],
+        permission_classes=[permissions.IsAuthenticated]
+    )
     def favorite(self, request, pk=None):
-        if request.user.is_anonymous:
-            return Response(
-                {'detail': 'Учетные данные не были предоставлены.'},
-                status=HTTPStatus.UNAUTHORIZED
-            )
         recipe = get_object_or_404(Recipe, id=pk)
         serializer = FavoriteSerializer(
             data={'user': request.user.id, 'recipe': recipe.id},
@@ -98,29 +96,22 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @favorite.mapping.delete
     def delete_favorite(self, request, pk=None):
-        if request.user.is_anonymous:
-            return Response(
-                {'detail': 'Учетные данные не были предоставлены.'},
-                status=HTTPStatus.UNAUTHORIZED
-            )
         recipe = get_object_or_404(Recipe, id=pk)
         deleted_count, _ = Favorite.objects.filter(
             user=request.user, recipe=recipe
         ).delete()
-        if deleted_count:
-            return Response(status=HTTPStatus.NO_CONTENT)
-        return Response(
-            {'errors': 'Рецепта не было в избранном.'},
-            status=HTTPStatus.BAD_REQUEST
-        )
-
-    @action(detail=True, methods=['post'])
-    def shopping_cart(self, request, pk=None):
-        if request.user.is_anonymous:
+        if not deleted_count:
             return Response(
-                {'detail': 'Учетные данные не были предоставлены.'},
-                status=HTTPStatus.UNAUTHORIZED
+                {'errors': 'Рецепта не было в избранном.'},
+                status=HTTPStatus.BAD_REQUEST
             )
+        return Response(status=HTTPStatus.NO_CONTENT)
+
+    @action(
+        detail=True, methods=['post'],
+        permission_classes=[permissions.IsAuthenticated]
+    )
+    def shopping_cart(self, request, pk=None):
         recipe = get_object_or_404(Recipe, id=pk)
         serializer = ShoppingCartSerializer(
             data={'user': request.user.id, 'recipe': recipe.id},
@@ -134,21 +125,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @shopping_cart.mapping.delete
     def delete_shopping_cart(self, request, pk=None):
-        if request.user.is_anonymous:
-            return Response(
-                {'detail': 'Учетные данные не были предоставлены.'},
-                status=HTTPStatus.UNAUTHORIZED
-            )
         recipe = get_object_or_404(Recipe, id=pk)
         deleted_count, _ = ShoppingCart.objects.filter(
             user=request.user, recipe=recipe
         ).delete()
-        if deleted_count:
-            return Response(status=HTTPStatus.NO_CONTENT)
-        return Response(
-            {'errors': 'Рецепта не было в списке покупок.'},
-            status=HTTPStatus.BAD_REQUEST
-        )
+        if not deleted_count:
+            return Response(
+                {'errors': 'Рецепта не было в списке покупок.'},
+                status=HTTPStatus.BAD_REQUEST
+            )
+        return Response(status=HTTPStatus.NO_CONTENT)
 
     @action(detail=False, methods=['get'])
     def download_shopping_cart(self, request):
@@ -184,12 +170,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return response
 
 
-class CustomUserViewSet(UserViewSet):
+class FoodgramUserViewSet(UserViewSet):
     """Представление для пользователей и подписокю"""
 
     pagination_class = LimitPageNumberPagination
 
-    @action(detail=False, methods=['get'])
+    @action(
+        detail=False, methods=['get'])
     def subscriptions(self, request):
         user = request.user
         authors = User.objects.filter(following__user=user)
@@ -199,14 +186,12 @@ class CustomUserViewSet(UserViewSet):
         )
         return self.get_paginated_response(serializer.data)
 
-    @action(detail=True, methods=['post'])
+    @action(
+        detail=True, methods=['post'],
+        permission_classes=[permissions.IsAuthenticated]
+    )
     def subscribe(self, request, id=None):
         """Подписка на автора."""
-        if not request.user.is_authenticated:
-            return Response(
-                {'detail': 'Учетные данные не были предоставлены.'},
-                status=HTTPStatus.UNAUTHORIZED
-            )
         author = get_object_or_404(User, id=id)
         serializer = SubscribeSerializer(
             data={'user': request.user.id, 'author': author.id},
@@ -220,31 +205,24 @@ class CustomUserViewSet(UserViewSet):
 
     @subscribe.mapping.delete
     def unsubscribe(self, request, id=None):
-        if not request.user.is_authenticated:
-            return Response(
-                {'detail': 'Учетные данные не были предоставлены.'},
-                status=HTTPStatus.UNAUTHORIZED
-            )
-
         author = get_object_or_404(User, id=id)
         deleted_count, _ = Follow.objects.filter(
             user=request.user, author=author
         ).delete()
-        if deleted_count:
-            return Response(status=HTTPStatus.NO_CONTENT)
-        return Response(
-            {'errors': 'Вы не были подписаны на этого автора.'},
-            status=HTTPStatus.BAD_REQUEST
-        )
+        if not deleted_count:
+            return Response(
+                {'errors': 'Вы не были подписаны на этого автора.'},
+                status=HTTPStatus.BAD_REQUEST
+            )
+        return Response(status=HTTPStatus.NO_CONTENT)
 
-    @action(detail=False, methods=['put'], url_path='me/avatar')
+    @action(
+        detail=False, methods=['put'],
+        url_path='me/avatar',
+        permission_classes=[permissions.IsAuthenticated]
+    )
     def avatar(self, request):
         """Обновление или добавление аватара пользователя."""
-        if not request.user.is_authenticated:
-            return Response(
-                {'detail': 'Учетные данные не были предоставлены.'},
-                status=HTTPStatus.UNAUTHORIZED
-            )
         user = request.user
         serializer = AvatarSerializer(
             user, data=request.data, context={'request': request}
@@ -256,11 +234,6 @@ class CustomUserViewSet(UserViewSet):
     @avatar.mapping.delete
     def delete_avatar(self, request):
         """Удаление аватара пользователя."""
-        if not request.user.is_authenticated:
-            return Response(
-                {'detail': 'Учетные данные не были предоставлены.'},
-                status=HTTPStatus.UNAUTHORIZED
-            )
         user = request.user
         if not user.avatar:
             return Response(

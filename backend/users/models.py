@@ -1,7 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-MAIL_LEN = 254
 NAME_LEN = 150
 
 
@@ -18,7 +17,6 @@ class User(AbstractUser):
     )
     email = models.EmailField(
         verbose_name='Адрес электронной почты',
-        max_length=MAIL_LEN,
         unique=True
     )
     avatar = models.ImageField(
@@ -29,14 +27,14 @@ class User(AbstractUser):
     )
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
-
-    def __str__(self):
-        return self.username
-
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
         ordering = ('last_name', 'first_name')
+
+    def __str__(self):
+        return self.username
+
 
 
 class Follow(models.Model):
@@ -58,6 +56,7 @@ class Follow(models.Model):
     class Meta:
         verbose_name = 'Подписка'
         verbose_name_plural = 'Подписки'
+        ordering = ('author__username', 'user__username')
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'author'],
@@ -68,3 +67,6 @@ class Follow(models.Model):
                 name='user_cannot_follow_oneself'
             )
         ]
+
+    def __str__(self):
+        return f'{self.user.username} подписан на {self.author.username}'

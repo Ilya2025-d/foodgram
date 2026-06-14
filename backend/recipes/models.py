@@ -11,6 +11,8 @@ INGRED_LEN = 128
 MEASU_UNIT_LEN = 64
 RECIPE_NAME = 256
 LINK_LEN = 10
+MIN_COOK_TIME = 1
+MAX_COOK_TIME = 32000
 
 
 User = get_user_model()
@@ -33,7 +35,7 @@ class Tag(models.Model):
     class Meta:
         verbose_name = 'Тег'
         verbose_name_plural = 'Теги'
-        ordering = ('id',)
+        ordering = ('name',)
 
     def __str__(self):
         return self.name
@@ -96,15 +98,17 @@ class Recipe(models.Model):
     cooking_time = models.PositiveSmallIntegerField(
         verbose_name='Время приготовления',
         validators=[
-            MinValueValidator(1, message='Нельзя меньше 1'),
-            MaxValueValidator(32000, message='Нельзя больше 32000')
+            MinValueValidator(
+                MIN_COOK_TIME, message=f'Нельзя меньше {MIN_COOK_TIME}'
+            ),
+            MaxValueValidator(
+                MAX_COOK_TIME, message=f'Нельзя больше {MAX_COOK_TIME}'
+            )
         ]
     )
     short_link_code = models.CharField(
         max_length=LINK_LEN,
         unique=True,
-        blank=True,
-        null=True,
         verbose_name='Короткая ссылка'
     )
 
@@ -121,7 +125,7 @@ class Recipe(models.Model):
         return ''.join(random.choice(characters) for _ in range(length))
 
     def save(self, *args, **options):
-        if not getattr(self, 'short_link_code', None):
+        if not self.short_link_code:
             self.short_link_code = self.generate_short_code()
             while Recipe.objects.filter(
                 short_link_code=self.short_link_code

@@ -20,7 +20,6 @@ class FoodgramAPITestCase(TestCase):
         self.tag = Tag.objects.create(
             name='Завтрак',
             slug='breakfast',
-            color='#FFFFFF'
         )
 
         self.recipe = Recipe.objects.create(

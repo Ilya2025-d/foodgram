@@ -243,10 +243,6 @@ class FoodgramUserViewSet(UserViewSet):
     def delete_avatar(self, request):
         """Удаление аватара пользователя."""
         user = request.user
-        if not user.avatar:
-            return Response(
-                {'errors': 'У вас не установлен аватар.'},
-                status=HTTPStatus.BAD_REQUEST
-            )
-        user.avatar.delete(save=True)
+        if user.avatar:
+            user.avatar.delete(save=True)
         return Response(status=HTTPStatus.NO_CONTENT)

@@ -176,6 +176,14 @@ class FoodgramUserViewSet(UserViewSet):
     pagination_class = LimitPageNumberPagination
 
     @action(
+        detail=False, methods=['get'],
+        permission_classes=[permissions.IsAuthenticated]
+    )
+    def me(self, request):
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data, status=HTTPStatus.OK)
+
+    @action(
         detail=False, methods=['get'])
     def subscriptions(self, request):
         user = request.user

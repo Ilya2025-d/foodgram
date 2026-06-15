@@ -13,6 +13,8 @@ RECIPE_NAME = 256
 LINK_LEN = 10
 MIN_COOK_TIME = 1
 MAX_COOK_TIME = 32000
+MIN_INGREDIENT = 1
+MAX_INGREDIENT = 32000
 
 
 User = get_user_model()
@@ -120,10 +122,6 @@ class Recipe(models.Model):
     def __str__(self):
         return self.name
 
-    def generate_short_code(self, length=6):
-        characters = string.ascii_letters + string.digits
-        return ''.join(random.choice(characters) for _ in range(length))
-
     def save(self, *args, **options):
         if not self.short_link_code:
             self.short_link_code = self.generate_short_code()
@@ -133,6 +131,9 @@ class Recipe(models.Model):
                 self.short_link_code = self.generate_short_code()
         super().save(*args, **options)
 
+    def generate_short_code(self, length=6):
+        characters = string.ascii_letters + string.digits
+        return ''.join(random.choice(characters) for _ in range(length))
 
 class IngredientInRecipe(models.Model):
     """Таблица связей рецептов с ингридиентами."""
@@ -152,8 +153,12 @@ class IngredientInRecipe(models.Model):
     amount = models.PositiveSmallIntegerField(
         verbose_name='кол-во ингредиентов',
         validators=[
-            MinValueValidator(1, message='Нельзя меньше 1'),
-            MaxValueValidator(32000, message='Нельзя больше 32000')
+            MinValueValidator(
+                MIN_INGREDIENT, message=f'Нельзя меньше {MIN_INGREDIENT}'
+            ),
+            MaxValueValidator(
+                MAX_INGREDIENT, message=f'Нельзя больше {MAX_INGREDIENT}'
+            )
         ]
     )
 

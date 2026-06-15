@@ -2,7 +2,6 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
-from rest_framework.exceptions import NotAuthenticated
 
 from users.models import Follow
 from recipes.models import (Favorite, Ingredient,
@@ -34,11 +33,6 @@ class FoodgramUserSerializer(serializers.ModelSerializer):
                 user=request.user, author=obj
             ).exists()
         )
-
-    def to_representation(self, instance):
-        if instance.is_anonymous:
-            raise NotAuthenticated('Учетные данные не были предоставлены.')
-        return super().to_representation(instance)
 
 
 class AvatarSerializer(serializers.ModelSerializer):
@@ -83,9 +77,16 @@ class IngredientInRecipeSerializer(serializers.ModelSerializer):
 class RecipeShortSerializer(serializers.ModelSerializer):
     """Для отображения рецептов в подписках."""
 
+    image = serializers.SerializerMethodField()
+
     class Meta:
         model = Recipe
         fields = ('id', 'name', 'image', 'cooking_time')
+
+    def get_image(self, obj):
+        if obj.image:
+            return obj.image.url
+        return ""
 
 
 class RecipeReadSerializer(serializers.ModelSerializer):
@@ -187,22 +188,12 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {'ingredients': 'Ингредиенты не должны повторяться.'}
             )
-        if 'image' in data and not data['image']:
-            raise serializers.ValidationError(
-                {'image': 'Поле изображения не может быть пустым.'}
-            )
-        if self.context.get(
-            'request'
-        ).method == 'POST' and 'image' not in data:
-            raise serializers.ValidationError(
-                {'image': 'Изображение обязательно.'}
-            )
         return data
 
-    def valodate_image(self, value):
-        if not value:
+    def validate_image(self, value):
+        if not value or value == '':
             raise serializers.ValidationError(
-                'Поле картинки не может быть пустым.'
+                'Поле изображения не может быть пустым.'
             )
         return value
 
@@ -309,24 +300,16 @@ class SubscriptionSerializer(FoodgramUserSerializer):
         )
 
     def get_recipes_count(self, obj):
-        author = getattr(obj, 'author', obj)
-        return author.recipes.count()
+        return obj.recipes.count()
 
     def get_recipes(self, obj):
-        short_serializer = globals()['RecipeShortSerializer']
         request = self.context.get('request')
-        author = getattr(obj, 'author', obj)
-        queryset = author.recipes.all()
+        queryset = obj.recipes.all()
         if request is not None:
-            limit = (
-                request.query_params.get('recipes_limit')
-                or getattr(
-                    request, '_request', request
-                ).GET.get('recipes_limit')
-            )
-            if limit and str(limit).isdigit() and int(limit) > 0:
+            limit = request.query_params.get('recipes_limit')
+            if limit and limit.isdigit() and int(limit) > 0:
                 queryset = queryset[:int(limit)]
-        serializer = short_serializer(
+        serializer = RecipeShortSerializer(
             queryset, many=True, context=self.context
         )
         return serializer.data

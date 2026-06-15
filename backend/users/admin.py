@@ -5,7 +5,7 @@ from .models import Follow, User
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    """АДминка пользователя."""\
+    """Админка пользователя."""
 
     list_display = ('id', 'username', 'email', 'first_name', 'last_name')
     search_fields = ('username', 'email')

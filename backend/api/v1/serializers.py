@@ -43,6 +43,12 @@ class AvatarSerializer(serializers.ModelSerializer):
         model = User
         fields = ('avatar',)
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if not instance.avatar:
+            data['avatar'] = None
+        return data
+
 
 class TagSerializer(serializers.ModelSerializer):
     """Сериалайзер для тегов."""

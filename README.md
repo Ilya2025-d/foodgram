@@ -25,6 +25,7 @@ cd infra
 
 3. Создайте файл `.env` внутри папки `infra/` со следующими переменными окружения:
 ```env
+DB_ENGINE=django.db.backends.postgresql
 POSTGRES_DB=foodgram
 POSTGRES_USER=foodgram_user
 POSTGRES_PASSWORD=foodgram_password
@@ -32,8 +33,8 @@ DB_HOST=db
 DB_PORT=5432
 SECRET_KEY=django-secret-key
 DEBUG=True(False по умолчанию)
-ALLOWED_HOSTS=
-CSRF_TRUSTED_ORIGINS=
+ALLOWED_HOSTS=(ваш домен)
+CSRF_TRUSTED_ORIGINS=(ваш домен)
 ```
 
 4. Запустите сборку и развёртывание контейнеров:
@@ -60,7 +61,7 @@ docker compose exec backend python manage.py createsuperuser
 
 ## Как наполнить базу данных ингредиентами
 
-В проекте предусмотрена автоматическая загрузка подготовленного списка ингредиентов из JSON-файла. Для наполнения базы данных выполните команду:
+В проекте предусмотрена автоматическая загрузка подготовленного списка ингредиентов из CSV-файла. Для наполнения базы данных выполните команду:
 
 ```bash
 docker compose exec backend python manage.py load_ingredients

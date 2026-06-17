@@ -1,9 +1,9 @@
 from http import HTTPStatus
 
 from django.contrib.auth import get_user_model
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse
 from django.db.models import Sum
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
 from rest_framework import permissions, viewsets
@@ -30,8 +30,7 @@ User = get_user_model()
 def redirect_to_recipe(request, short_code):
     """Перенаправляет короткую ссылку на полную страницу рецепта."""
     recipe = get_object_or_404(Recipe, short_link_code=short_code)
-    full_url = request.build_absolute_uri(f'/recipes/{recipe.id}/')
-    return HttpResponseRedirect(full_url)
+    return redirect(f'/recipes/{recipe.id}/')
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
